@@ -1,0 +1,26 @@
+# Environnements virtuels
+.venv
+env
+venv
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Base de données locale
+db.sqlite3
+
+# Fichiers d'environnement
+.env
+
+# Git
+.git
+.gitignore
+
+# IDE / OS
+.vscode
+.idea
+.DS_Store
+Thumbs.db

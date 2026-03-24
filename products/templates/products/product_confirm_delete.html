@@ -1,0 +1,60 @@
+<!-- products/templates/products/product_confirm_delete.html -->
+{% extends 'base.html' %}
+
+{% block title %}Delete Product - IMS{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Delete Product</h1>
+</div>
+
+<div class="section" style="text-align: center;">
+    <div style="margin-bottom: 2rem;">
+        <h2 style="color: #e74c3c;">Confirm Deletion</h2>
+        <p>Are you sure you want to delete this product?</p>
+    </div>
+
+    <div class="section" style="max-width: 500px; margin: 0 auto 2rem;">
+        <h3>{{ product.name }}</h3>
+        <table style="width: 100%; margin-top: 1rem;">
+            <tr>
+                <td style="padding: 0.5rem; color: #7f8c8d;"><strong>SKU:</strong></td>
+                <td style="padding: 0.5rem;">{{ product.sku }}</td>
+            </tr>
+            <tr>
+                <td style="padding: 0.5rem; color: #7f8c8d;"><strong>Category:</strong></td>
+                <td style="padding: 0.5rem;">{{ product.category.name|default:"N/A" }}</td>
+            </tr>
+            <tr>
+                <td style="padding: 0.5rem; color: #7f8c8d;"><strong>Price:</strong></td>
+                <td style="padding: 0.5rem;">${{ product.unit_price }}</td>
+            </tr>
+            <tr>
+                <td style="padding: 0.5rem; color: #7f8c8d;"><strong>Stock:</strong></td>
+                <td style="padding: 0.5rem;">{{ product.current_stock|default:0 }} units</td>
+            </tr>
+        </table>
+
+        {% if product.current_stock and product.current_stock > 0 %}
+        <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 1rem; margin-top: 1rem; border-radius: 4px;">
+            <p style="color: #856404; margin: 0;">
+                ⚠️ <strong>Warning:</strong> This product has {{ product.current_stock }} units in stock.
+                Deleting it will remove all inventory records.
+            </p>
+        </div>
+        {% endif %}
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        <div style="display: flex; justify-content: center; gap: 1rem;">
+            <a href="{% url 'products:list' %}" class="btn" style="background-color: #95a5a6; color: white;">
+                Cancel
+            </a>
+            <button type="submit" class="btn" style="background-color: #e74c3c; color: white;">
+                Yes, Delete Product
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

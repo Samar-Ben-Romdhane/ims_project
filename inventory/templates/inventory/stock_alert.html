@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}Stock Alerts - IMS{% endblock %}
+{% block content %}
+<h1>Low Stock Alerts</h1>
+
+<div class="alert alert-error">
+    <strong>Warning:</strong> The following items are running low on stock!
+</div>
+
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>Product</th>
+            <th>SKU</th>
+            <th>Current Stock</th>
+            <th>Minimum Stock</th>
+            <th>Shortage</th>
+            <th>Last Updated</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for stock in low_stocks %}
+        <tr class="low-stock">
+            <td>{{ stock.product.name }}</td>
+            <td>{{ stock.product.sku }}</td>
+            <td><strong>{{ stock.quantity }}</strong></td>
+            <td>{{ stock.minimum_stock }}</td>
+            <td class="text-danger">{{ stock.minimum_stock|add:"-"|add:stock.quantity|default:"0" }}</td>
+            <td>{{ stock.last_updated|date:"Y-m-d H:i" }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="6" class="text-success">✓ All products are well stocked!</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<a href="{% url 'inventory:stock_list' %}" class="btn btn-primary">Back to Stock List</a>
+{% endblock %}

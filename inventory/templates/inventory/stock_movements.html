@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% block title %}Stock Movements - IMS{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>Stock Movement History</h1>
+    <div>
+      <a href="{% url 'inventory:add_movement' %}" class="btn btn-primary">Add Movement</a>
+      <a href="{% url 'inventory:export_movements_csv' %}?{{ request.GET.urlencode }}" class="btn btn-success">Export CSV</a>
+   </div>
+</div>
+
+
+
+
+<div class="section">
+    <form method="get" class="filter-form">
+        <div class="filter-row">
+            <select name="product" class="filter-select">
+                <option value="">All Products</option>
+                {% for product in products %}
+                <option value="{{ product.id }}" {% if selected_product == product.id|stringformat:"s" %}selected{% endif %}>
+                    {{ product.name }} ({{ product.sku }})
+                </option>
+                {% endfor %}
+            </select>
+
+            <select name="type" class="filter-select">
+                <option value="">All Types</option>
+                <option value="in" {% if selected_type == "in" %}selected{% endif %}>Stock In</option>
+                <option value="out" {% if selected_type == "out" %}selected{% endif %}>Stock Out</option>
+                <option value="adjustment" {% if selected_type == "adjustment" %}selected{% endif %}>Adjustment</option>
+            </select>
+
+            <button type="submit" class="btn btn-primary">Filter</button>
+            <a href="{% url 'inventory:movements' %}" class="btn btn-secondary">Reset</a>
+        </div>
+    </form>
+</div>
+
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>Product</th>
+            <th>Type</th>
+            <th>Quantity</th>
+            <th>Previous Stock</th>
+            <th>New Stock</th>
+            <th>Reason</th>
+            <th>User</th>
+        </tr>
+    </thead>
+    <tbody>
+          <div class="pagination-info">
+             Showing {{ page_obj.start_index }}–{{ page_obj.end_index }}
+             of {{ page_obj.paginator.count }} movements
+          </div>
+           {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}&product={{ selected_product }}&type={{ selected_type }}">
+            Next ➡
+        </a>
+    {% endif %}
+          {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}&product={{ selected_product }}&type={{ selected_type }}">
+            ⬅ Previous
+        </a>
+    {% endif %}
+          {% for movement in page_obj %}
+
+        <tr>
+            <td>{{ movement.created_at|date:"Y-m-d H:i" }}</td>
+            <td>{{ movement.product.name }}</td>
+            <td>
+                <span class="badge badge-{{ movement.movement_type }}">
+                    {{ movement.get_movement_type_display }}
+                </span>
+            </td>
+            <td>{{ movement.quantity }}</td>
+            <td>{{ movement.previous_quantity }}</td>
+            <td>{{ movement.new_quantity }}</td>
+            <td>{{ movement.reason|default:"N/A" }}</td>
+            <td>{{ movement.user.username|default:"System" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" style="text-align: center; padding: 20px;">No movements found</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+  <div class="pagination">
+    {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}&product={{ selected_product }}&type={{ selected_type }}">
+            ⬅ Previous
+        </a>
+    {% endif %}
+
+    <span>
+        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+    </span>
+
+    {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}&product={{ selected_product }}&type={{ selected_type }}">
+            Next ➡
+        </a>
+    {% endif %}
+
+  </div>
+{% endblock %}

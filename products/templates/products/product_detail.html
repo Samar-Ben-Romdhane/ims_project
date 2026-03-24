@@ -1,0 +1,331 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ product.name }} - IMS{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>{{ product.name }}</h1>
+        <p style="color: #7f8c8d; margin-top: 0.5rem;">SKU: {{ product.sku }}</p>
+    </div>
+    <div>
+        <a href="{% url 'products:list' %}" class="btn btn-primary">
+            ← Back to Products
+        </a>
+        <a href="{% url 'products:update' product.pk %}" class="btn btn-primary">
+            Edit Product
+        </a>
+    </div>
+</div>
+
+<!-- Stats Overview -->
+<div class="stats-grid">
+    <div class="stat-card {% if product.current_stock <= product.low_stock_threshold %}alert-card{% endif %}">
+        <h3>Current Stock</h3>
+        <div class="stat-number">{{ product.current_stock|default:0 }}</div>
+        <p style="margin-top: 0.5rem; font-size: 0.9rem;">
+            Low stock threshold: {{ product.low_stock_threshold|default:10 }}
+        </p>
+    </div>
+<div class="stat-card">
+    <h3>Stock Value</h3>
+    <div class="stat-number">${{ product.get_stock_value|floatformat:2 }}</div>
+    <p style="margin-top: 0.5rem; font-size: 0.9rem;">
+        Unit price: ${{ product.safe_unit_price|floatformat:2 }}
+    </p>
+</div>
+
+    <div class="stat-card">
+        <h3>Stock Status</h3>
+        <div class="stat-number" style="font-size: 1.8rem;">
+            {% if product.current_stock <= 0 %}
+                <span class="badge badge-danger">OUT OF STOCK</span>
+            {% elif product.current_stock <= product.low_stock_threshold %}
+                <span class="badge" style="background-color: #f39c12;">LOW STOCK</span>
+            {% else %}
+                <span class="badge badge-success">IN STOCK</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <h3>Total Movements</h3>
+        <div class="stat-number">
+            <div style="color: #27ae60; font-size: 1.2rem;">IN: +{{ total_in|default:0 }}</div>
+            <div style="color: #e74c3c; font-size: 1.2rem;">OUT: -{{ total_out|default:0 }}</div>
+        </div>
+        <p style="margin-top: 0.5rem; font-size: 0.9rem;">
+            Net: {{ net_movement|default:0 }} units
+        </p>
+    </div>
+</div>
+
+<!-- Product Information -->
+<div class="section">
+    <h2 style="margin-bottom: 1.5rem;">Product Information</h2>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+        <!-- Left Column -->
+        <div>
+            <h3 style="margin-bottom: 1rem; color: #2c3e50;">Basic Details</h3>
+            <table style="width: 100%;">
+                <tr>
+                    <td style="padding: 0.5rem 0; width: 40%; color: #7f8c8d;"><strong>SKU:</strong></td>
+                    <td style="padding: 0.5rem 0;">{{ product.sku }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 0.5rem 0; color: #7f8c8d;"><strong>Name:</strong></td>
+                    <td style="padding: 0.5rem 0;">{{ product.name }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 0.5rem 0; color: #7f8c8d;"><strong>Description:</strong></td>
+                    <td style="padding: 0.5rem 0;">{{ product.description|default:"No description" }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 0.5rem 0; color: #7f8c8d;"><strong>Category:</strong></td>
+                    <td style="padding: 0.5rem 0;">
+                        {{ product.category.name|default:"Uncategorized" }}
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 0.5rem 0; color: #7f8c8d;"><strong>Supplier:</strong></td>
+                    <td style="padding: 0.5rem 0;">
+                        {{ product.supplier.name|default:"No supplier" }}
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Right Column -->
+        <div>
+            <h3 style="margin-bottom: 1rem; color: #2c3e50;">Inventory Details</h3>
+            <table style="width: 100%;">
+               <tr>
+                  <td style="padding: 0.5rem 0; color: #7f8c8d;"><strong>Unit Price:</strong></td>
+                  <td style="padding: 0.5rem 0;">${{ product.safe_unit_price|floatformat:2 }}</td>
+               </tr>
+                <tr>
+                    <td style="padding: 0.5rem 0; color: #7f8c8d;"><strong>Cost Price:</strong></td>
+                    <td style="padding: 0.5rem 0;">${{ product.safe_cost_price|floatformat:2|default:"N/A" }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 0.5rem 0; color: #7f8c8d;"><strong>Location:</strong></td>
+                    <td style="padding: 0.5rem 0;">{{ product.location|default:"Not specified" }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 0.5rem 0; color: #7f8c8d;"><strong>Created:</strong></td>
+                    <td style="padding: 0.5rem 0;">{{ product.created_at|date:"F d, Y H:i" }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 0.5rem 0; color: #7f8c8d;"><strong>Last Updated:</strong></td>
+                    <td style="padding: 0.5rem 0;">{{ product.updated_at|date:"F d, Y H:i"|default:"Never" }}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Stock Movements Section -->
+<div class="section">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h2>Recent Stock Movements</h2>
+        {% if product.get_recent_movements %}
+        {% endif %}
+    </div>
+
+    {% if stock_movements %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Quantity</th>
+                <th>Reference</th>
+                <th>Notes</th>
+                <th>User</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!---->
+            {% for movement in stock_movements %}
+            <tr>
+                <td>{{ movement.created_at|date:"Y-m-d H:i" }}</td>
+                <td>
+                    {% if movement.movement_type == 'IN' %}
+                        <span class="badge badge-success">IN</span>
+                    {% elif movement.movement_type == 'OUT' %}
+                        <span class="badge badge-danger">OUT</span>
+                    {% else %}
+                        <span class="badge" style="background-color: #f39c12;">
+                            {{ movement.movement_type }}
+                        </span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if movement.movement_type == 'IN' %}
+                        <span style="color: #27ae60;">+{{ movement.quantity }}</span>
+                    {% elif movement.movement_type == 'OUT' %}
+                        <span style="color: #e74c3c;">-{{ movement.quantity }}</span>
+                    {% else %}
+                        {{ movement.quantity }}
+                    {% endif %}
+                </td>
+                <td>{{ movement.reference|default:"-" }}</td>
+                <td>{{ movement.notes|truncatechars:30|default:"-" }}</td>
+                <td>{{ movement.user.username|default:"System" }}</td>
+            </tr>
+            {% endfor %}
+            <!-- FIN DE VOTRE CODE -->
+        </tbody>
+    </table>
+    {% else %}
+    <div style="text-align: center; padding: 3rem; background: #f8f9fa; border-radius: 4px;">
+        <p style="color: #7f8c8d; font-size: 1.1rem;">No stock movements recorded for this product.</p>
+        <p style="color: #95a5a6; margin-top: 0.5rem;">Start by adding stock using the button below.</p>
+        <button class="btn btn-primary" style="margin-top: 1rem;" onclick="showAddStockModal()">
+            Add Stock Movement
+        </button>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Product Image (if exists) -->
+{% if product.image %}
+<div class="section">
+    <h2>Product Image</h2>
+    <div style="text-align: center; margin-top: 1rem;">
+        <img src="{{ product.image.url }}" alt="{{ product.name }}"
+             style="max-width: 300px; max-height: 300px; border-radius: 4px; border: 1px solid #ddd;">
+    </div>
+</div>
+{% endif %}
+
+<!-- Action Buttons -->
+<div class="section" style="background-color: #f8f9fa; text-align: center;">
+    <div style="display: inline-flex; gap: 1rem;">
+        <a href="{% url 'products:list' %}" class="btn" style="background-color: #95a5a6; color: white;">
+            ← Back to Products
+        </a>
+        <a href="{% url 'products:update' product.pk %}" class="btn btn-primary">
+            Edit Product
+        </a>
+        <button class="btn btn-primary" onclick="showAddStockModal()">
+            Add Stock Movement
+        </button>
+        {% if product.current_stock > 0 %}
+        <button class="btn" style="background-color: #27ae60; color: white;">
+            Create Sale
+        </button>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Add Stock Modal (Hidden by default) -->
+<div id="addStockModal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);">
+    <div style="background-color: white; margin: 10% auto; padding: 2rem; border-radius: 8px; width: 90%; max-width: 500px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h2>Add Stock Movement</h2>
+            <button onclick="hideAddStockModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+        </div>
+
+<div style="text-align: center; padding: 2rem;">
+    <p>Add stock functionality will be implemented soon.</p>
+    <button class="btn btn-primary" onclick="alert('Feature coming soon!')">
+        Add Stock Movement
+    </button>
+</div>            {% csrf_token %}
+            <div class="form-group">
+                <label>Movement Type</label>
+                <select name="movement_type" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="IN">Stock In (Add)</option>
+                    <option value="OUT">Stock Out (Remove)</option>
+                    <option value="ADJUST">Adjustment</option>
+                    <option value="RETURN">Return</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Quantity</label>
+                <input type="number" name="quantity" min="1" required
+                       style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+
+            <div class="form-group">
+                <label>Reference (Optional)</label>
+                <input type="text" name="reference" placeholder="e.g., PO-1234"
+                       style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+
+            <div class="form-group">
+                <label>Notes (Optional)</label>
+                <textarea name="notes" rows="3" placeholder="Additional information..."
+                          style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;"></textarea>
+            </div>
+
+            <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                <button type="button" class="btn" onclick="hideAddStockModal()"
+                        style="background-color: #95a5a6; color: white;">
+                    Cancel
+                </button>
+                <button type="submit" class="btn btn-primary">
+                    Save Movement
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Modal functions
+function showAddStockModal() {
+    document.getElementById('addStockModal').style.display = 'block';
+}
+
+function hideAddStockModal() {
+    document.getElementById('addStockModal').style.display = 'none';
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const modal = document.getElementById('addStockModal');
+    if (event.target == modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// Close modal with Escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        hideAddStockModal();
+    }
+});
+
+// Quantity preview
+document.addEventListener('DOMContentLoaded', function() {
+    const quantityInput = document.querySelector('input[name="quantity"]');
+    const movementTypeSelect = document.querySelector('select[name="movement_type"]');
+
+    if (quantityInput && movementTypeSelect) {
+        function updatePreview() {
+            const quantity = parseInt(quantityInput.value) || 0;
+            const currentStock = {{ product.current_stock|default:0 }};
+            const type = movementTypeSelect.value;
+
+            let newStock = currentStock;
+            if (type === 'IN') {
+                newStock = currentStock + quantity;
+            } else if (type === 'OUT') {
+                newStock = currentStock - quantity;
+            }
+
+            // You could show a preview here
+            console.log(`New stock will be: ${newStock}`);
+        }
+
+        quantityInput.addEventListener('input', updatePreview);
+        movementTypeSelect.addEventListener('change', updatePreview);
+    }
+});
+</script>
+
+{% endblock %}

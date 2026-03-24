@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block title %}Stock Inventory - IMS{% endblock %}
+{% block content %}
+<h1>Stock Inventory</h1>
+
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>Product</th>
+            <th>SKU</th>
+            <th>Current Stock</th>
+            <th>Minimum Stock</th>
+            <th>Status</th>
+            <th>Last Updated</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for stock in stocks %}
+        <tr class="{% if stock.is_low_stock %}low-stock{% endif %}">
+            <td>{{ stock.product.name }}</td>
+            <td>{{ stock.product.sku }}</td>
+            <td>{{ stock.quantity }}</td>
+            <td>{{ stock.minimum_stock }}</td>
+            <td>
+                {% if stock.is_low_stock %}
+                <span class="badge badge-danger">Low Stock</span>
+                {% else %}
+                <span class="badge badge-success">In Stock</span>
+                {% endif %}
+            </td>
+            <td>{{ stock.last_updated|date:"Y-m-d H:i" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6">No stock records found</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
