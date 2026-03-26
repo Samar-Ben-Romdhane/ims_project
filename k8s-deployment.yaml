@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ims-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ims
+  template:
+    metadata:
+      labels:
+        app: ims
+    spec:
+      containers:
+      - name: ims-container
+        image: ims_project:latest
+        ports:
+        - containerPort: 8000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ims-service
+spec:
+  selector:
+    app: ims
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000
+      nodePort: 30001
