@@ -1,27 +1,58 @@
 pipeline {
     agent any
 
+    environment {
+        DOCKER_IMAGE = "samarbenromdhane/ims_project"
+        KUBE_CONFIG = "/var/jenkins_home/.kube/config"
+    }
+
     stages {
 
-        stage('Build') {
+        stage('Clone Repository') {
             steps {
-                sh 'docker build -t ims_project .'
+                git 'https://github.com/Samar-Ben-Romdhane/ims_project.git'
             }
         }
 
-        stage('Stop Old Container') {
+        stage('Build Docker Image') {
             steps {
-                sh 'docker stop ims_container || true'
-                sh 'docker rm ims_container || true'
+                sh 'docker build -t $DOCKER_IMAGE:latest .'
             }
         }
 
-        stage('Run Container') {
+        stage('Push to DockerHub') {
             steps {
-                sh 'docker run -d -p 8000:8000 --name ims_container ims_project'
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-credentials',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+
+                    sh """
+                    echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                    docker push $DOCKER_IMAGE:latest
+                    """
+                }
             }
         }
 
+        stage('Deploy to Kubernetes') {
+            steps {
+                sh """
+                export KUBECONFIG=$KUBE_CONFIG
+                kubectl apply -f k8s/k8s-deployment.yaml
+                """
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                sh """
+                export KUBECONFIG=$KUBE_CONFIG
+                kubectl get pods
+                kubectl get svc
+                """
+            }
+        }
     }
 }
-
