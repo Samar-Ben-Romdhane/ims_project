@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: ims-container
-        image: ims_project:latest
+        image: samarbenromdhane/ims_project:latest
         imagePullPolicy: Never
         ports:
         - containerPort: 8000
