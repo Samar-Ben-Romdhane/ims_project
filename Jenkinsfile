@@ -8,15 +8,17 @@ pipeline {
 
     stages {
 
-        stage('Clone Repository') {
+        stage('Checkout Code') {
             steps {
-                git 'https://github.com/Samar-Ben-Romdhane/ims_project.git'
+                git branch: 'main', url: 'https://github.com/Samar-Ben-Romdhane/ims_project.git'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t $DOCKER_IMAGE:latest .'
+                sh '''
+                docker build -t $DOCKER_IMAGE:latest .
+                '''
             }
         }
 
@@ -28,30 +30,30 @@ pipeline {
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
 
-                    sh """
+                    sh '''
                     echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
                     docker push $DOCKER_IMAGE:latest
-                    """
+                    '''
                 }
             }
         }
 
         stage('Deploy to Kubernetes') {
             steps {
-                sh """
+                sh '''
                 export KUBECONFIG=$KUBE_CONFIG
                 kubectl apply -f k8s/k8s-deployment.yaml
-                """
+                '''
             }
         }
 
         stage('Verify Deployment') {
             steps {
-                sh """
+                sh '''
                 export KUBECONFIG=$KUBE_CONFIG
                 kubectl get pods
                 kubectl get svc
-                """
+                '''
             }
         }
     }
