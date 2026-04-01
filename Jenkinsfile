@@ -1,19 +1,15 @@
 pipeline {
     agent any
-
     environment {
         DOCKER_IMAGE = "samarbenromdhane/ims_project"
         KUBE_CONFIG = "/var/jenkins_home/.kube/config"
     }
-
     stages {
-
         stage('Checkout Code') {
             steps {
                 git branch: 'main', url: 'https://github.com/Samar-Ben-Romdhane/ims_project.git'
             }
         }
-
         stage('Build Docker Image') {
             steps {
                 sh '''
@@ -21,23 +17,22 @@ pipeline {
                 '''
             }
         }
-
         stage('Push to DockerHub') {
             steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-credentials',
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
-                )]) {
-
-                    sh '''
-                    echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-                    docker push $DOCKER_IMAGE:latest
-                    '''
+                timeout(time: 15, unit: 'MINUTES') {
+                    withCredentials([usernamePassword(
+                        credentialsId: 'dockerhub-credentials',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                    )]) {
+                        sh '''
+                        echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                        docker push $DOCKER_IMAGE:latest
+                        '''
+                    }
                 }
             }
         }
-
         stage('Deploy to Kubernetes') {
             steps {
                 sh '''
@@ -46,7 +41,6 @@ pipeline {
                 '''
             }
         }
-
         stage('Verify Deployment') {
             steps {
                 sh '''
