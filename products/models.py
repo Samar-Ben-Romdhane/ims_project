@@ -93,111 +93,80 @@ class Product(models.Model):
             return ('low_stock', 'Low Stock', 'warning')
         else:
             return ('in_stock', 'In Stock', 'success')
+def update_stock(self, quantity, movement_type='in', user=None, reason=''):
+    """
+    Update stock and create movement record.
+    This method interacts with inventory.StockMovement
+    """
+    from inventory.models import StockMovement
 
-    def update_stock(self, quantity, movement_type='IN', user=None, notes='', **kwargs):
+    movement_type = movement_type.lower()
 
-        #Update stock and create movement record.
-        #This method interacts with inventory.StockMovement
+    if movement_type == 'out' and quantity > self.current_stock:
+        raise ValueError(
+            f"Insufficient stock for {self.name}. "
+            f"Available: {self.current_stock}, Requested: {quantity}"
+        )
 
-        from inventory.models import StockMovement  # Import from inventory app
+    old_stock = self.current_stock
 
-        # Validate stock for "out" movements
-        if movement_type == 'OUT' and quantity > self.current_stock:
-            raise ValueError(
-                f"Insufficient stock for {self.name}. "
-                f"Available: {self.current_stock}, Requested: {quantity}"
-            )
+    if movement_type == 'in':
+        self.current_stock += quantity
+    elif movement_type == 'out':
+        self.current_stock -= quantity
+    elif movement_type == 'adjustment':
+        self.current_stock = quantity
+    else:
+        raise ValueError(f"Invalid movement_type: {movement_type}")
 
-            # Update product stock
-            old_stock = self.current_stock
+    self.save()
 
-            if movement_type == 'IN':
-                self.current_stock += quantity
-            elif movement_type == 'OUT':
-                self.current_stock -= quantity
-            elif movement_type == 'ADJUST':
-                self.current_stock = quantity
-            elif movement_type == 'RETURN':
-                self.current_stock += quantity
+    movement = StockMovement.objects.create(
+        product=self,
+        movement_type=movement_type,
+        quantity=quantity,
+        previous_quantity=old_stock,
+        new_quantity=self.current_stock,
+        reason=reason or f"Stock updated from {old_stock} to {self.current_stock}",
+        user=user,
+    )
 
-            self.save()
+    return {
+        'movement': movement,
+        'new_stock': self.current_stock,
+        'old_stock': old_stock
+    }
 
-            # Create stock movement record in inventory app
-            movement = StockMovement.objects.create(
-                product=self,
-                movement_type=movement_type,
-                quantity=quantity,
-                user=user,
-                notes=notes or f"Stock updated from {old_stock} to {self.current_stock}",
-                unit_cost=self.cost_price or self.unit_price,
-                # Pass any additional kwargs to StockMovement
-                **kwargs
-            )
 
-            return {
-                'movement': movement,
-                'new_stock': self.current_stock,
-                'old_stock': old_stock
-            }
+def get_total_in(self):
+    """Get total quantity received"""
+    from inventory.models import StockMovement
+    from django.db.models import Sum
+    return StockMovement.objects.filter(
+        product=self,
+        movement_type='in'
+    ).aggregate(total=Sum('quantity'))['total'] or 0
 
-    def get_total_in(self):
-        """Get total quantity received"""
-        # Assurez-vous que StockMovement a un related_name vers Product
-        # Sinon, modifiez 'stock_movements' selon votre configuration
-        from inventory.models import StockMovement
-        return StockMovement.objects.filter(
-            product=self,
-            movement_type='IN'
-        ).aggregate(total=math.fsum('quantity'))['total'] or 0
 
-    def get_total_out(self):
-        """Get total quantity sold/dispatched"""
-        from inventory.models import StockMovement
-        return StockMovement.objects.filter(
-            product=self,
-            movement_type='OUT'
-        ).aggregate(total=math.fsum('quantity'))['total'] or 0
+def get_total_out(self):
+    """Get total quantity sold/dispatched"""
+    from inventory.models import StockMovement
+    from django.db.models import Sum
+    return StockMovement.objects.filter(
+        product=self,
+        movement_type='out'
+    ).aggregate(total=Sum('quantity'))['total'] or 0
 
-    def get_recent_movements(self, limit=10):
-        """Get recent stock movements from inventory app"""
-        from inventory.models import StockMovement
-        return StockMovement.objects.filter(
-            product=self
-        ).order_by('-created_at')[:limit]
 
-    @property
-    def stock_movements(self):
-        """Property to access stock movements easily"""
-        from inventory.models import StockMovement
-        return StockMovement.objects.filter(product=self)
+def get_stock_history(self, days=30):
+    """Get stock movements for the last N days"""
+    from inventory.models import StockMovement
 
-    def check_low_stock(self):
-        #Check if stock is below threshold
-        return self.current_stock <= self.low_stock_threshold
-
-    @property
-    def margin(self):
-        #Calculate profit margin percentage
-        if self.cost_price and self.unit_price > 0:
-            return round(((self.unit_price - self.cost_price) / self.unit_price) * 100,2)
-        return 0
-
-    @property
-    def profit_per_unit(self):
-        """Calculate profit per unit"""
-        if self.cost_price:
-            return self.unit_price - self.cost_price
-        return self.unit_price
-
-    def get_stock_history(self, days=30):
-        """Get stock movements for the last N days"""
-        from inventory.models import StockMovement
-
-        start_date = now() - timedelta(days=days)
-        return StockMovement.objects.filter(
-            product=self,
-            date__gte=start_date
-        ).order_by('-created_at')
+    start_date = now() - timedelta(days=days)
+    return StockMovement.objects.filter(
+        product=self,
+        created_at__gte=start_date
+    ).order_by('-created_at')
 
 
     class Meta:
