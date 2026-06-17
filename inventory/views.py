@@ -14,6 +14,94 @@ from django.db.models.functions import TruncDate
 from .metrics import stock_movements_counter
 
 
+@login_required
+def stock_movements(request):
+    movements = StockMovement.objects.all().select_related('product', 'user')
+
+    # Filtre par produit
+    product_id = request.GET.get('product', '')
+    if product_id:
+        movements = movements.filter(product_id=product_id)
+
+    # Filtre par type
+    movement_type = request.GET.get('type', '')
+    if movement_type:
+        movements = movements.filter(movement_type=movement_type)
+
+    # Pagination
+    paginator = Paginator(movements, 20)  # 20 mouvements par page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    products = Product.objects.all()
+
+    context = {
+        'page_obj': page_obj,
+        'products': products,
+        'selected_product': product_id,
+        'selected_type': movement_type,
+    }
+
+    return render(request, 'inventory/stock_movements.html', context)
+
+
+@login_required
+def export_stock_movements_csv(request):
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="export_stock_movements_csv.csv"'
+
+    writer = csv.writer(response, delimiter=';')
+
+    writer.writerow([
+        'Product',
+        'SKU',
+        'Movement Type',
+        'Quantity',
+        'Reason',
+        'Date',
+        'Time'
+    ])
+
+    movements = StockMovement.objects.select_related('product')
+
+    if request.GET.get('product'):
+        movements = movements.filter(product_id=request.GET['product'])
+
+    if request.GET.get('type'):
+        movements = movements.filter(movement_type=request.GET['type'])
+
+    movements = movements.order_by('-created_at')
+
+    for movement in movements:
+        dt = localtime(movement.created_at)
+
+        writer.writerow([
+            movement.product.name,
+            movement.product.sku,
+            movement.get_movement_type_display(),
+            movement.quantity,
+            movement.reason or 'N/A',
+            dt.strftime('%d/%m/%Y'),
+            dt.strftime('%H:%M')
+        ])
+
+    return response
+
+
+@login_required
+def stock_movements_stats_api(request):
+    """
+    API JSON: total quantity IN / OUT per day
+    """
+    data = (
+        StockMovement.objects
+        .annotate(date=TruncDate('created_at'))
+        .values('date', 'movement_type')
+        .annotate(total=Sum('quantity'))
+        .order_by('date')
+    )
+
+    return JsonResponse(list(data), safe=False)
 
 
 @login_required
